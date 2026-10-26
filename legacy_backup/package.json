@@ -1,0 +1,20 @@
+{
+  "name": "scholarflow-student-task-manager",
+  "version": "1.0.0",
+  "description": "Full-stack student task manager with Google Gemini LLM DevBot, modular frontend, backend, and Supabase cloud database",
+  "scripts": {
+    "install:all": "npm install --prefix backend",
+    "start": "npm start --prefix backend",
+    "start:backend": "npm start --prefix backend",
+    "dev:backend": "npm run dev --prefix backend"
+  },
+  "keywords": [
+    "student-task-manager",
+    "gemini-llm",
+    "devbot",
+    "supabase",
+    "fullstack"
+  ],
+  "author": "ScholarFlow Team",
+  "license": "MIT"
+}

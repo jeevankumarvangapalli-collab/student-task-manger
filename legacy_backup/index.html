@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ScholarFlow - The lightweight, zero-account academic assignment and deadline management tool for students. Prioritize, track, and complete coursework with ease. Connected to Supabase for cloud sync.">
+  <meta name="keywords" content="student planner, task manager, academic assignments, homework tracker, study timer, pomodoro, deadline tracker, supabase cloud sync">
+  <meta name="author" content="ScholarFlow Team">
+  <title>ScholarFlow | Modern Academic Task & Deadline Cockpit</title>
+  
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Supabase JS Client v2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-dark">
+
+  <!-- App Wrapper -->
+  <div class="app-layout" id="app">
+    
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-section">
+        <div class="brand-logo-wrap">
+          <img src="assets/logo.jpg" alt="ScholarFlow Logo" class="brand-logo" id="brandLogo">
+          <span class="logo-pulse"></span>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">Scholar<span>Flow</span></h1>
+          <span class="brand-badge">Academic Cockpit</span>
+        </div>
+      </div>
+
+      <!-- Quick Add Assignment Trigger -->
+      <button class="btn btn-primary btn-quick-add" id="btnOpenNewTaskModal" title="Shortcut: Press 'N'">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Add Assignment</span>
+        <kbd class="kbd-badge">N</kbd>
+      </button>
+
+      <!-- Main Navigation Views -->
+      <nav class="nav-menu" aria-label="Views Navigation">
+        <div class="nav-group-label">VIEWS</div>
+        
+        <button class="nav-item active" data-view="list" id="navViewList">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          <span class="nav-label">Assignments Feed</span>
+          <span class="counter-badge" id="listBadgeCount">0</span>
+        </button>
+
+        <button class="nav-item" data-view="kanban" id="navViewKanban">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="11" y="3" width="5" height="12" rx="1"/><rect x="19" y="3" width="5" height="15" rx="1"/></svg>
+          <span class="nav-label">Kanban Board</span>
+        </button>
+
+        <button class="nav-item" data-view="calendar" id="navViewCalendar">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="nav-label">Deadline Calendar</span>
+        </button>
+
+        <button class="nav-item" data-view="matrix" id="navViewMatrix">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
+          <span class="nav-label">Priority Matrix</span>
+          <span class="pill-mini">Eisenhower</span>
+        </button>
+
+        <button class="nav-item" data-view="focus" id="navViewFocus">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="nav-label">Focus Pomodoro</span>
+          <span class="active-dot" id="pomodoroActiveDot" style="display:none"></span>
+        </button>
+
+        <button class="nav-item" data-view="analytics" id="navViewAnalytics">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          <span class="nav-label">Workload & Insights</span>
+        </button>
+
+        <button class="nav-item nav-item-ai" data-view="devbot" id="navViewDevbot">
+          <svg class="icon icon-ai-sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          <span class="nav-label">DevBot AI Coach</span>
+          <span class="pill-sparkle">Gemini</span>
+        </button>
+      </nav>
+
+      <!-- Courses & Subjects Section -->
+      <div class="sidebar-courses-section">
+        <div class="courses-header">
+          <span class="nav-group-label">COURSES & MODULES</span>
+          <button class="btn-icon-subtle" id="btnManageCourses" title="Manage Courses" aria-label="Manage Courses">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+        <div class="course-list-nav" id="sidebarCourseList">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Cloud Sync Widget in Sidebar -->
+      <div class="sidebar-cloud-widget" id="sidebarCloudWidget">
+        <div class="cloud-widget-header">
+          <div class="cloud-status-indicator" id="cloudStatusIndicator">
+            <span class="cloud-dot local"></span>
+            <span class="cloud-status-text" id="cloudStatusText">Local Storage</span>
+          </div>
+          <button class="btn-cloud-config" id="btnSidebarOpenSupabase" title="Configure Supabase Connection">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+        </div>
+        <div class="cloud-widget-details" id="cloudWidgetDetails">
+          Connect Supabase for multi-device sync
+        </div>
+      </div>
+
+      <!-- Quick Productivity Stats / Streak in Sidebar -->
+      <div class="sidebar-study-widget">
+        <div class="widget-header">
+          <span class="widget-icon">🔥</span>
+          <span class="widget-title">Study Streak</span>
+        </div>
+        <div class="streak-value-row">
+          <span class="streak-days" id="streakDaysCount">5</span>
+          <span class="streak-label">Days Consistent</span>
+        </div>
+        <div class="streak-progress-bar">
+          <div class="streak-progress-fill" id="weeklyStreakFill" style="width: 71%;"></div>
+        </div>
+        <div class="streak-subtitle" id="streakSubtitle">5 of 7 daily study targets met!</div>
+      </div>
+
+      <!-- Sidebar Footer Controls -->
+      <div class="sidebar-footer">
+        <button class="btn-sidebar-tool" id="btnToggleAudio" title="Toggle UI Sound Effects" aria-label="Toggle Sound">
+          <span id="audioIcon">🔊</span>
+          <span class="tool-text">Sound: ON</span>
+        </button>
+        <button class="btn-sidebar-tool" id="btnToggleTheme" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+          <span id="themeIcon">🌙</span>
+          <span class="tool-text">Dark Mode</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content" id="mainContent">
+      
+      <!-- Top Action & Search Header -->
+      <header class="top-header" id="topHeader">
+        <div class="header-left">
+          <button class="mobile-menu-btn" id="btnMobileMenu" aria-label="Open navigation sidebar">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="header-greeting-block">
+            <h2 class="view-header-title" id="currentViewTitle">Academic Feed</h2>
+            <p class="view-header-subtitle" id="currentViewSubtitle">Loading your semester status...</p>
+          </div>
+        </div>
+
+        <!-- Global Search & Filters -->
+        <div class="header-center">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="globalSearchInput" class="search-input" placeholder="Search assignments, exam prep, topics... (Press '/')" aria-label="Search assignments">
+            <kbd class="kbd-badge">/</kbd>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Supabase Cloud Connection Button -->
+          <button class="btn btn-secondary btn-icon-text" id="btnOpenSupabaseModal" title="Supabase Cloud Connection & Sync">
+            <svg class="icon icon-supabase" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M21.362 9.354H12V.396a.396.396 0 0 0-.716-.233L2.203 12.424a.396.396 0 0 0 .319.638H12v8.958a.396.396 0 0 0 .716.233l9.081-12.261a.396.396 0 0 0-.319-.638z" fill="#3ECF8E"/>
+            </svg>
+            <span id="btnSupabaseLabel">Supabase Sync</span>
+            <span class="supabase-mini-badge" id="supabaseMiniBadge">Local</span>
+          </button>
+
+          <!-- Urgent Alert Indicator -->
+          <div class="urgent-indicator" id="urgentSummaryPill" title="Deadlines within 24 hours">
+            <span class="pulsing-beacon"></span>
+            <span class="urgent-text" id="urgentCountText">0 Urgent</span>
+          </div>
+
+          <!-- Quick Actions Menu Dropdown -->
+          <div class="dropdown-wrapper">
+            <button class="btn btn-secondary btn-icon-text" id="btnDataActions" aria-expanded="false">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              <span>Export</span>
+              <svg class="icon icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dropdown-menu" id="dataActionsMenu">
+              <button class="dropdown-item" id="btnExportICal">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <div>
+                  <div class="dropdown-item-title">Export to iCalendar (.ics)</div>
+                  <div class="dropdown-item-desc">Sync deadlines to Apple / Google / Outlook</div>
+                </div>
+              </button>
+              <button class="dropdown-item" id="btnExportJSON">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <div>
+                  <div class="dropdown-item-title">Backup Local Data (JSON)</div>
+                  <div class="dropdown-item-desc">Save offline snapshot to your disk</div>
+                </div>
+              </button>
+              <label class="dropdown-item cursor-pointer">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <div>
+                  <div class="dropdown-item-title">Restore / Import Data</div>
+                  <div class="dropdown-item-desc">Load a previous JSON backup</div>
+                </div>
+                <input type="file" id="inputImportJSON" accept=".json" style="display:none;">
+              </label>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item text-primary" id="btnSeedDemoData">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <div>
+                  <div class="dropdown-item-title">Load Realistic Semester Demo</div>
+                  <div class="dropdown-item-desc">Sample courses, exams & assignments</div>
+                </div>
+              </button>
+              <button class="dropdown-item text-danger" id="btnClearAllData">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <div>
+                  <div class="dropdown-item-title">Reset & Clear Data</div>
+                  <div class="dropdown-item-desc">Wipe local browser storage</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Print Planner Button -->
+          <button class="btn btn-secondary btn-icon-only" id="btnPrintPlanner" title="Print Academic Planner Sheet" aria-label="Print Planner">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Course & Filter Bar -->
+      <section class="filter-strip" aria-label="Filter Options">
+        <div class="filter-chips-container" id="filterCourseChips">
+          <button class="chip active" data-filter-course="all">
+            <span class="chip-dot all"></span>
+            All Courses
+          </button>
+          <!-- Dynamic course filter pills -->
+        </div>
+
+        <div class="filter-secondary-group">
+          <!-- Type Filter -->
+          <select id="filterTypeSelect" class="select-sm" aria-label="Filter by Assignment Type">
+            <option value="all">All Types</option>
+            <option value="assignment">Homework</option>
+            <option value="exam">Exams & Quizzes</option>
+            <option value="project">Projects & Papers</option>
+            <option value="reading">Readings</option>
+            <option value="lab">Lab Reports</option>
+            <option value="extracurricular">Extracurricular</option>
+          </select>
+
+          <!-- Priority Filter -->
+          <select id="filterPrioritySelect" class="select-sm" aria-label="Filter by Priority">
+            <option value="all">All Priorities</option>
+            <option value="urgent">🔴 Urgent (Do First)</option>
+            <option value="high">🟠 High</option>
+            <option value="medium">🔵 Medium</option>
+            <option value="low">⚪ Low</option>
+          </select>
+
+          <!-- Sort Selector -->
+          <select id="sortTasksSelect" class="select-sm" aria-label="Sort assignments">
+            <option value="deadline_asc">Due Date (Earliest First)</option>
+            <option value="deadline_desc">Due Date (Furthest First)</option>
+            <option value="priority_desc">Priority (Urgent First)</option>
+            <option value="weight_desc">Grade Weight (Highest First)</option>
+            <option value="title_asc">Title (A - Z)</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Dynamic Views Container -->
+      <div class="view-viewport" id="viewViewport">
+        
+        <!-- VIEW 1: Smart Feed / List View -->
+        <section class="view-panel active" id="viewList" aria-labelledby="navViewList">
+          <div class="quick-inline-capture">
+            <div class="quick-capture-box">
+              <span class="quick-capture-icon">⚡</span>
+              <input type="text" id="quickTaskInput" class="quick-input" placeholder="Quick record: e.g. 'Read Chapter 4 for CS101 tomorrow at 5pm' (Type & press Enter)">
+              <div class="quick-capture-meta">
+                <select id="quickCourseSelect" class="quick-course-select" aria-label="Select course for quick task"></select>
+                <select id="quickPrioritySelect" class="quick-priority-select" aria-label="Select priority for quick task">
+                  <option value="medium">Medium</option>
+                  <option value="urgent">🔴 Urgent</option>
+                  <option value="high">🟠 High</option>
+                  <option value="low">⚪ Low</option>
+                </select>
+                <input type="date" id="quickDueDate" class="quick-date-input" aria-label="Quick due date">
+                <button class="btn btn-primary btn-sm" id="btnQuickSubmit">Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grouped Assignment Sections -->
+          <div class="list-groups-wrapper" id="listGroupsWrapper">
+            <!-- Overdue Group -->
+            <div class="task-group group-overdue" id="groupOverdue" style="display:none;">
+              <div class="group-header">
+                <div class="group-title-row">
+                  <span class="group-tag-pill tag-danger">⚠️ OVERDUE</span>
+                  <span class="group-count" id="countOverdue">0</span>
+                </div>
+                <span class="group-hint">Action required immediately</span>
+              </div>
+              <div class="task-cards-list" id="cardsOverdue"></div>
+            </div>
+
+            <!-- Due Today Group -->
+            <div class="task-group group-today" id="groupToday">
+              <div class="group-header">
+                <div class="group-title-row">
+                  <span class="group-tag-pill tag-warning">🔥 DUE TODAY</span>
+                  <span class="group-count" id="countToday">0</span>
+                </div>
+                <span class="group-hint">Submit before 11:59 PM</span>
+              </div>
+              <div class="task-cards-list" id="cardsToday"></div>
+            </div>
+
+            <!-- Due Tomorrow / Soon Group -->
+            <div class="task-group group-tomorrow" id="groupTomorrow">
+              <div class="group-header">
+                <div class="group-title-row">
+                  <span class="group-tag-pill tag-info">⏰ DUE TOMORROW</span>
+                  <span class="group-count" id="countTomorrow">0</span>
+                </div>
+                <span class="group-hint">Prepare in advance</span>
+              </div>
+              <div class="task-cards-list" id="cardsTomorrow"></div>
+            </div>
+
+            <!-- Upcoming This Week / Later -->
+            <div class="task-group group-upcoming" id="groupUpcoming">
+              <div class="group-header">
+                <div class="group-title-row">
+                  <span class="group-tag-pill tag-secondary">📅 UPCOMING THIS SEMESTER</span>
+                  <span class="group-count" id="countUpcoming">0</span>
+                </div>
+                <span class="group-hint">Keep pacing yourself</span>
+              </div>
+              <div class="task-cards-list" id="cardsUpcoming"></div>
+            </div>
+
+            <!-- Completed Group -->
+            <div class="task-group group-completed" id="groupCompleted">
+              <div class="group-header accordion-toggle" id="btnToggleCompletedGroup">
+                <div class="group-title-row">
+                  <span class="group-tag-pill tag-success">✅ COMPLETED</span>
+                  <span class="group-count" id="countCompleted">0</span>
+                </div>
+                <div class="group-toggle-right">
+                  <span class="text-muted text-sm">Click to toggle</span>
+                  <svg class="icon icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div class="task-cards-list" id="cardsCompleted" style="display:none;"></div>
+            </div>
+          </div>
+
+          <!-- Empty State (when zero items match) -->
+          <div class="empty-state-card" id="listEmptyState" style="display:none;">
+            <div class="empty-icon-wrap">🎉</div>
+            <h3 class="empty-title">All Caught Up!</h3>
+            <p class="empty-desc">No assignments pending in this view. Enjoy your free time or add your upcoming projects early.</p>
+            <button class="btn btn-primary" id="btnEmptyAdd">Create New Assignment</button>
+          </div>
+        </section>
+
+        <!-- VIEW 2: Kanban Board View -->
+        <section class="view-panel" id="viewKanban" aria-labelledby="navViewKanban">
+          <div class="kanban-instructions-banner">
+            <span>💡 <strong>Pro-Tip:</strong> Drag and drop cards across columns to advance assignment progress.</span>
+          </div>
+          <div class="kanban-board-container" id="kanbanBoard">
+            
+            <!-- Column 1: Not Started -->
+            <div class="kanban-column" data-status="todo" id="kanbanColTodo">
+              <div class="kanban-col-header">
+                <div class="col-title-wrap">
+                  <span class="col-dot status-todo"></span>
+                  <h3 class="col-title">To Do / Backlog</h3>
+                </div>
+                <span class="col-badge" id="kanbanBadgeTodo">0</span>
+              </div>
+              <div class="kanban-cards-wrapper drop-zone" data-drop-status="todo" id="kanbanCardsTodo"></div>
+            </div>
+
+            <!-- Column 2: In Progress -->
+            <div class="kanban-column" data-status="in_progress" id="kanbanColInProgress">
+              <div class="kanban-col-header">
+                <div class="col-title-wrap">
+                  <span class="col-dot status-in-progress"></span>
+                  <h3 class="col-title">Actively Working</h3>
+                </div>
+                <span class="col-badge" id="kanbanBadgeInProgress">0</span>
+              </div>
+              <div class="kanban-cards-wrapper drop-zone" data-drop-status="in_progress" id="kanbanCardsInProgress"></div>
+            </div>
+
+            <!-- Column 3: Review / Ready to Submit -->
+            <div class="kanban-column" data-status="review" id="kanbanColReview">
+              <div class="kanban-col-header">
+                <div class="col-title-wrap">
+                  <span class="col-dot status-review"></span>
+                  <h3 class="col-title">Review & Proofread</h3>
+                </div>
+                <span class="col-badge" id="kanbanBadgeReview">0</span>
+              </div>
+              <div class="kanban-cards-wrapper drop-zone" data-drop-status="review" id="kanbanCardsReview"></div>
+            </div>
+
+            <!-- Column 4: Submitted & Done -->
+            <div class="kanban-column" data-status="completed" id="kanbanColCompleted">
+              <div class="kanban-col-header">
+                <div class="col-title-wrap">
+                  <span class="col-dot status-completed"></span>
+                  <h3 class="col-title">Submitted & Done</h3>
+                </div>
+                <span class="col-badge" id="kanbanBadgeCompleted">0</span>
+              </div>
+              <div class="kanban-cards-wrapper drop-zone" data-drop-status="completed" id="kanbanCardsCompleted"></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- VIEW 3: Interactive Academic Calendar -->
+        <section class="view-panel" id="viewCalendar" aria-labelledby="navViewCalendar">
+          <div class="calendar-controls-bar">
+            <div class="cal-nav-left">
+              <button class="btn btn-secondary btn-sm" id="btnCalPrevMonth" aria-label="Previous Month">&larr; Prev</button>
+              <button class="btn btn-secondary btn-sm" id="btnCalToday">Today</button>
+              <button class="btn btn-secondary btn-sm" id="btnCalNextMonth" aria-label="Next Month">Next &rarr;</button>
+              <h3 class="calendar-month-heading" id="calMonthTitle">October 2026</h3>
+            </div>
+            <div class="cal-legend">
+              <span class="legend-item"><span class="legend-dot dot-exam"></span> Exam / Quiz</span>
+              <span class="legend-item"><span class="legend-dot dot-urgent"></span> Urgent</span>
+              <span class="legend-item"><span class="legend-dot dot-assignment"></span> Assignment</span>
+              <span class="legend-item"><span class="legend-dot dot-done"></span> Completed</span>
+            </div>
+          </div>
+
+          <div class="calendar-grid-card">
+            <!-- Day of Week Headers -->
+            <div class="cal-weekdays-row">
+              <div>Sun</div>
+              <div>Mon</div>
+              <div>Tue</div>
+              <div>Wed</div>
+              <div>Thu</div>
+              <div>Fri</div>
+              <div>Sat</div>
+            </div>
+            <!-- Calendar Days Cells -->
+            <div class="cal-days-grid" id="calDaysGrid"></div>
+          </div>
+
+          <!-- Day Inspector Drawer -->
+          <div class="cal-day-inspector" id="calDayInspector" style="display:none;">
+            <div class="inspector-header">
+              <h4 id="inspectorDateTitle">Deadlines on October 24, 2026</h4>
+              <button class="btn-icon-subtle" id="btnCloseInspector">&times;</button>
+            </div>
+            <div class="inspector-task-list" id="inspectorTaskList"></div>
+          </div>
+        </section>
+
+        <!-- VIEW 4: Eisenhower Priority Matrix -->
+        <section class="view-panel" id="viewMatrix" aria-labelledby="navViewMatrix">
+          <div class="matrix-guide-banner">
+            <div class="matrix-guide-text">
+              <strong>The Eisenhower Student Decision Matrix:</strong> Focus your cognitive energy on Quadrant 1, schedule deep work for Quadrant 2, and knock out Quadrants 3 & 4 efficiently.
+            </div>
+          </div>
+
+          <div class="matrix-grid-container">
+            <!-- Quadrant 1: Urgent & Important (DO FIRST) -->
+            <div class="matrix-quadrant quad-do-first">
+              <div class="quad-header">
+                <div class="quad-title-block">
+                  <span class="quad-num">Q1</span>
+                  <div>
+                    <h3 class="quad-title">Do First & Fast</h3>
+                    <p class="quad-subtitle">Urgent & Important (Imminent Deadlines, Exams)</p>
+                  </div>
+                </div>
+                <span class="col-badge badge-q1" id="matrixBadgeQ1">0</span>
+              </div>
+              <div class="quad-content-list" id="matrixListQ1"></div>
+            </div>
+
+            <!-- Quadrant 2: Not Urgent but Important (SCHEDULE) -->
+            <div class="matrix-quadrant quad-schedule">
+              <div class="quad-header">
+                <div class="quad-title-block">
+                  <span class="quad-num">Q2</span>
+                  <div>
+                    <h3 class="quad-title">Schedule & Deep Work</h3>
+                    <p class="quad-subtitle">Important, Not Urgent (Term Papers, Long Readings)</p>
+                  </div>
+                </div>
+                <span class="col-badge badge-q2" id="matrixBadgeQ2">0</span>
+              </div>
+              <div class="quad-content-list" id="matrixListQ2"></div>
+            </div>
+
+            <!-- Quadrant 3: Urgent but Low Importance (QUICK WINS) -->
+            <div class="matrix-quadrant quad-delegate">
+              <div class="quad-header">
+                <div class="quad-title-block">
+                  <span class="quad-num">Q3</span>
+                  <div>
+                    <h3 class="quad-title">Quick Wins</h3>
+                    <p class="quad-subtitle">Urgent, Low Impact (Discussion boards, Surveys)</p>
+                  </div>
+                </div>
+                <span class="col-badge badge-q3" id="matrixBadgeQ3">0</span>
+              </div>
+              <div class="quad-content-list" id="matrixListQ3"></div>
+            </div>
+
+            <!-- Quadrant 4: Neither Urgent Nor Important (LOW PRIORITY) -->
+            <div class="matrix-quadrant quad-backlog">
+              <div class="quad-header">
+                <div class="quad-title-block">
+                  <span class="quad-num">Q4</span>
+                  <div>
+                    <h3 class="quad-title">Low Priority / Optional</h3>
+                    <p class="quad-subtitle">Not Urgent, Low Impact (Bonus Reading, Club notes)</p>
+                  </div>
+                </div>
+                <span class="col-badge badge-q4" id="matrixBadgeQ4">0</span>
+              </div>
+              <div class="quad-content-list" id="matrixListQ4"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 5: Focus Pomodoro Study Timer -->
+        <section class="view-panel" id="viewFocus" aria-labelledby="navViewFocus">
+          <div class="focus-timer-container">
+            
+            <div class="timer-mode-selector" role="tablist">
+              <button class="timer-mode-btn active" data-mode="pomodoro">Study Focus (25m)</button>
+              <button class="timer-mode-btn" data-mode="shortBreak">Short Break (5m)</button>
+              <button class="timer-mode-btn" data-mode="longBreak">Long Break (15m)</button>
+            </div>
+
+            <div class="timer-visual-wrapper">
+              <svg class="timer-svg" viewBox="0 0 280 280">
+                <circle class="timer-bg-circle" cx="140" cy="140" r="120" />
+                <circle class="timer-progress-circle" id="timerProgressCircle" cx="140" cy="140" r="120" />
+              </svg>
+              <div class="timer-inner-content">
+                <div class="timer-time-display" id="timerDigits">25:00</div>
+                <div class="timer-session-label" id="timerSessionLabel">DEEP STUDY SESSION</div>
+                <div class="timer-target-task-label" id="timerSelectedTaskDisplay">No assignment linked</div>
+              </div>
+            </div>
+
+            <!-- Timer Action Controls -->
+            <div class="timer-controls-row">
+              <button class="btn btn-secondary btn-icon-only btn-lg" id="btnTimerReset" title="Reset Timer" aria-label="Reset Timer">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              </button>
+              <button class="btn btn-primary btn-timer-main" id="btnTimerToggle">
+                <span id="timerPlayIcon">▶</span>
+                <span id="timerPlayText">Start Focus Session</span>
+              </button>
+              <button class="btn btn-secondary btn-icon-only btn-lg" id="btnTimerSkip" title="Skip to Next Cycle" aria-label="Skip to Next Cycle">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+              </button>
+            </div>
+
+            <!-- Task Selector for Timer Linking -->
+            <div class="timer-task-link-box">
+              <label for="timerTaskSelect" class="timer-link-label">Focus on specific assignment:</label>
+              <select id="timerTaskSelect" class="timer-task-select">
+                <option value="">-- Choose an assignment to work on --</option>
+              </select>
+            </div>
+
+            <!-- Pomodoro Session Stats -->
+            <div class="pomodoro-session-stats">
+              <div class="pomo-stat-item">
+                <span class="pomo-stat-val" id="pomoCountCompleted">0</span>
+                <span class="pomo-stat-lbl">Focus Blocks Done</span>
+              </div>
+              <div class="pomo-stat-item">
+                <span class="pomo-stat-val" id="pomoTotalMinutes">0m</span>
+                <span class="pomo-stat-lbl">Time Focused Today</span>
+              </div>
+              <div class="pomo-stat-item">
+                <span class="pomo-stat-val">4</span>
+                <span class="pomo-stat-lbl">Daily Target</span>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- VIEW 6: Workload & Insights / Analytics -->
+        <section class="view-panel" id="viewAnalytics" aria-labelledby="navViewAnalytics">
+          
+          <!-- Key Metric Cards -->
+          <div class="stats-cards-grid">
+            <div class="stat-metric-card">
+              <div class="metric-top">
+                <span class="metric-icon bg-indigo">📚</span>
+                <span class="metric-pill" id="statPendingRatePill">Active</span>
+              </div>
+              <div class="metric-val" id="statTotalPending">0</div>
+              <div class="metric-label">Pending Assignments</div>
+            </div>
+
+            <div class="stat-metric-card">
+              <div class="metric-top">
+                <span class="metric-icon bg-emerald">✅</span>
+                <span class="metric-pill pill-success" id="statCompletionRatePill">0%</span>
+              </div>
+              <div class="metric-val" id="statTotalCompleted">0</div>
+              <div class="metric-label">Completed Assignments</div>
+            </div>
+
+            <div class="stat-metric-card">
+              <div class="metric-top">
+                <span class="metric-icon bg-amber">⏳</span>
+                <span class="metric-pill" id="statWorkloadHoursPill">Study Load</span>
+              </div>
+              <div class="metric-val" id="statEstimatedHours">0.0h</div>
+              <div class="metric-label">Estimated Workload Remaining</div>
+            </div>
+
+            <div class="stat-metric-card">
+              <div class="metric-top">
+                <span class="metric-icon bg-rose">🎯</span>
+                <span class="metric-pill pill-danger" id="statExamsUpcomingPill">Exams</span>
+              </div>
+              <div class="metric-val" id="statUpcomingExamsCount">0</div>
+              <div class="metric-label">Exams / Quizzes Upcoming</div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="analytics-charts-row">
+            
+            <!-- Workload Forecast Chart (Pure SVG) -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="chart-title">7-Day Due Date Workload</h3>
+                  <p class="chart-desc">Assignment deadlines over the upcoming 7 days</p>
+                </div>
+                <span class="chart-legend-badge">Daily Task Count</span>
+              </div>
+              <div class="chart-body" id="workloadChartContainer">
+                <!-- SVG Bar Chart injected by JS -->
+              </div>
+            </div>
+
+            <!-- Course Distribution Chart -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="chart-title">Course Task Distribution</h3>
+                  <p class="chart-desc">Active workload share per enrolled course</p>
+                </div>
+              </div>
+              <div class="chart-body" id="courseDistributionContainer">
+                <!-- Course breakdown list injected by JS -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Academic Health & Recommendations -->
+          <div class="study-advice-card" id="academicHealthAdvice">
+            <div class="advice-icon">💡</div>
+            <div class="advice-content">
+              <h4 class="advice-title" id="adviceTitle">Study Pacing Tip</h4>
+              <p class="advice-text" id="adviceText">Loading personalized workload recommendations...</p>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- VIEW 7: DevBot AI Study Coach & Developer Assistant -->
+        <section class="view-panel" id="viewDevbot" aria-labelledby="navViewDevbot">
+          <div class="devbot-cockpit">
+            
+            <!-- DevBot Header -->
+            <div class="devbot-cockpit-header">
+              <div class="devbot-header-left">
+                <div class="devbot-avatar-wrap">
+                  <span class="devbot-avatar-emoji">🤖</span>
+                  <span class="pulse-ring"></span>
+                </div>
+                <div>
+                  <div class="devbot-title-row">
+                    <h2 class="devbot-title">DevBot AI Academic Coach</h2>
+                    <span class="devbot-badge-tag">Google Gemini LLM</span>
+                  </div>
+                  <p class="devbot-desc">Deconstruct assignments into timed subtasks, create exam prep schedules & debug coursework</p>
+                </div>
+              </div>
+              
+              <div class="devbot-header-right">
+                <div class="devbot-status-badge online" id="devbotBackendStatus">
+                  <span class="status-dot"></span>
+                  <span>Gemini LLM Connected</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btnDevbotClearChat" title="Clear Conversation">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                  <span>Clear</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Quick Capabilities / Prompt Chips -->
+            <div class="devbot-quick-prompts-row">
+              <button class="devbot-prompt-chip" data-prompt="⚡ Break down my upcoming highest priority assignment into 45-minute timed subtasks.">
+                <span>⚡ Break Down Next Assignment</span>
+              </button>
+              <button class="devbot-prompt-chip" data-prompt="📅 Build a 3-day active recall study plan to prepare for upcoming exams and deadlines.">
+                <span>📅 3-Day Study Schedule</span>
+              </button>
+              <button class="devbot-prompt-chip" data-prompt="🎯 What are the top 2 urgent assignments I should focus on knocking out today, and why?">
+                <span>🎯 Prioritize Today's Work</span>
+              </button>
+              <button class="devbot-prompt-chip" data-prompt="💡 Explain how to approach solving a complex programming problem step by step.">
+                <span>💡 Problem Solving Guide</span>
+              </button>
+            </div>
+
+            <!-- Messages Stream Area -->
+            <div class="devbot-messages-stream" id="devbotMessagesList">
+              <!-- Rendered dynamically by chat.js -->
+            </div>
+
+            <!-- Chat Input Footer -->
+            <div class="devbot-input-footer">
+              <div class="devbot-input-wrapper">
+                <textarea id="devbotChatInput" class="devbot-textarea" placeholder="Ask DevBot anything (e.g. 'Decompose my CS project', 'Create study plan for exams', 'Prioritize today')... Press Enter to send" rows="1"></textarea>
+                <button class="btn btn-primary btn-devbot-send" id="btnDevbotSend" title="Send (Enter)">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </div>
+              <div class="devbot-input-hint">
+                <span>Powered by <strong>Google Gemini</strong></span> &bull; <span>Shift + Enter for newline</span> &bull; <span>Context-aware with your academic tasks</span>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL: Add / Edit Assignment -->
+  <div class="modal-backdrop" id="taskModal" aria-hidden="true" role="dialog" aria-labelledby="taskModalTitle">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-header-icon" id="taskModalIcon">✏️</span>
+          <h3 class="modal-title" id="taskModalTitle">Add Academic Assignment</h3>
+        </div>
+        <button class="modal-close-btn" id="btnCloseTaskModal" aria-label="Close modal">&times;</button>
+      </div>
+
+      <form id="taskForm" class="modal-form">
+        <input type="hidden" id="formTaskId">
+
+        <!-- Title Field -->
+        <div class="form-group">
+          <label for="formTitle" class="form-label">Assignment Title / Topic <span class="required">*</span></label>
+          <input type="text" id="formTitle" class="form-input" placeholder="e.g. Problem Set 4 - Dynamic Programming" required autofocus>
+        </div>
+
+        <!-- Course & Assignment Type -->
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="formCourse" class="form-label">Course / Subject <span class="required">*</span></label>
+            <select id="formCourse" class="form-select" required></select>
+          </div>
+          <div class="form-group col-6">
+            <label for="formType" class="form-label">Type <span class="required">*</span></label>
+            <select id="formType" class="form-select" required>
+              <option value="assignment">Homework / Problem Set</option>
+              <option value="exam">Exam / Quiz Prep</option>
+              <option value="project">Project / Term Paper</option>
+              <option value="reading">Required Reading</option>
+              <option value="lab">Lab Report / Code</option>
+              <option value="extracurricular">Extracurricular / Club</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Due Date & Time -->
+        <div class="form-row">
+          <div class="form-group col-7">
+            <label for="formDueDate" class="form-label">Due Date <span class="required">*</span></label>
+            <input type="date" id="formDueDate" class="form-input" required>
+          </div>
+          <div class="form-group col-5">
+            <label for="formDueTime" class="form-label">Time Due</label>
+            <input type="time" id="formDueTime" class="form-input" value="23:59">
+          </div>
+        </div>
+
+        <!-- Priority & Status -->
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="formPriority" class="form-label">Priority Level <span class="required">*</span></label>
+            <select id="formPriority" class="form-select" required>
+              <option value="urgent">🔴 Urgent (Do Immediately)</option>
+              <option value="high">🟠 High (Major Impact)</option>
+              <option value="medium" selected>🔵 Medium (Normal Homework)</option>
+              <option value="low">⚪ Low (Optional / Minor)</option>
+            </select>
+          </div>
+          <div class="form-group col-6">
+            <label for="formStatus" class="form-label">Status</label>
+            <select id="formStatus" class="form-select">
+              <option value="todo">To Do (Not Started)</option>
+              <option value="in_progress">In Progress</option>
+              <option value="review">Review & Proofread</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Estimated Study Time & Grade Weight -->
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="formEstMinutes" class="form-label">Est. Time Required</label>
+            <div class="input-with-affix">
+              <input type="number" id="formEstMinutes" class="form-input" min="5" step="5" placeholder="60">
+              <span class="affix">mins</span>
+            </div>
+          </div>
+          <div class="form-group col-6">
+            <label for="formGradeWeight" class="form-label">Grade Weight (Optional)</label>
+            <div class="input-with-affix">
+              <input type="number" id="formGradeWeight" class="form-input" min="0" max="100" step="0.5" placeholder="15">
+              <span class="affix">%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subtasks / Checklist builder -->
+        <div class="form-group">
+          <div class="subtasks-label-row">
+            <label class="form-label">Action Checklist / Milestones</label>
+            <div class="subtask-header-actions">
+              <button type="button" class="btn-devbot-magic" id="btnDevBotBreakdownTask" title="Ask Gemini to generate subtasks for this assignment">
+                <span class="magic-sparkle">✨</span> DevBot AI Breakdown
+              </button>
+              <button type="button" class="btn-text-action" id="btnAddSubtaskRow">+ Add Step</button>
+            </div>
+          </div>
+          <div class="subtasks-editor-list" id="formSubtasksContainer">
+            <!-- Dynamic subtask input rows -->
+          </div>
+        </div>
+
+        <!-- Notes / Syllabus instructions -->
+        <div class="form-group">
+          <label for="formNotes" class="form-label">Notes, Rubric Details, or Submission Links</label>
+          <textarea id="formNotes" class="form-textarea" rows="3" placeholder="Submission portal: Canvas / Gradescope. Remember IEEE format, test cases required."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnCancelTaskModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveTask">Save Assignment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Manage Courses -->
+  <div class="modal-backdrop" id="coursesModal" aria-hidden="true" role="dialog" aria-labelledby="coursesModalTitle">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-header-icon">🎨</span>
+          <h3 class="modal-title" id="coursesModalTitle">Manage Courses & Subjects</h3>
+        </div>
+        <button class="modal-close-btn" id="btnCloseCoursesModal" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="modal-body-pad">
+        <form id="courseAddForm" class="course-inline-form">
+          <div class="form-row align-end">
+            <div class="form-group col-4">
+              <label for="newCourseCode" class="form-label">Course Code <span class="required">*</span></label>
+              <input type="text" id="newCourseCode" class="form-input" placeholder="CS 101" required>
+            </div>
+            <div class="form-group col-5">
+              <label for="newCourseName" class="form-label">Full Name <span class="required">*</span></label>
+              <input type="text" id="newCourseName" class="form-input" placeholder="Algorithms & Data Structs" required>
+            </div>
+            <div class="form-group col-2">
+              <label for="newCourseColor" class="form-label">Color</label>
+              <input type="color" id="newCourseColor" class="color-picker-input" value="#6366f1">
+            </div>
+            <div class="form-group col-1">
+              <button type="submit" class="btn btn-primary btn-icon-only" title="Add Course" aria-label="Add Course">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <h4 class="subhead-small">Enrolled Courses (<span id="coursesModalCount">0</span>)</h4>
+        <div class="manage-courses-list" id="manageCoursesList">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnDoneCoursesModal">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Supabase Cloud Sync Configuration -->
+  <div class="modal-backdrop" id="supabaseModal" aria-hidden="true" role="dialog" aria-labelledby="supabaseModalTitle">
+    <div class="modal-window modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <svg class="icon icon-lg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21.362 9.354H12V.396a.396.396 0 0 0-.716-.233L2.203 12.424a.396.396 0 0 0 .319.638H12v8.958a.396.396 0 0 0 .716.233l9.081-12.261a.396.396 0 0 0-.319-.638z" fill="#3ECF8E"/>
+          </svg>
+          <div>
+            <h3 class="modal-title" id="supabaseModalTitle">Supabase Cloud Sync</h3>
+            <span class="modal-title-sub">Multi-device sync and cloud backup for your academic tasks</span>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="btnCloseSupabaseModal" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="modal-body-pad">
+        
+        <!-- Live Connection Status Pill -->
+        <div class="supabase-connection-banner" id="supabaseConnectionBanner">
+          <div class="banner-status-left">
+            <span class="status-indicator-dot" id="bannerStatusDot"></span>
+            <div>
+              <strong id="bannerStatusTitle">Not Connected</strong>
+              <div class="text-xs text-muted" id="bannerStatusDesc">Operating in local browser storage mode.</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btnTestSupabaseConnection">Test Connection</button>
+        </div>
+
+        <!-- Connection Settings Form -->
+        <form id="supabaseConfigForm" class="supabase-config-form">
+          <div class="form-group">
+            <label for="supabaseUrlInput" class="form-label">Supabase Project URL <span class="required">*</span></label>
+            <input type="url" id="supabaseUrlInput" class="form-input" placeholder="https://your-project-id.supabase.co" required>
+            <span class="input-hint">Found in Supabase Dashboard &rarr; Project Settings &rarr; API &rarr; Project URL</span>
+          </div>
+
+          <div class="form-group">
+            <label for="supabaseAnonKeyInput" class="form-label">Supabase Anon / Public API Key <span class="required">*</span></label>
+            <input type="password" id="supabaseAnonKeyInput" class="form-input font-mono" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..." required>
+            <span class="input-hint">Found in Supabase Dashboard &rarr; Project Settings &rarr; API &rarr; Project API keys (anon public)</span>
+          </div>
+
+          <!-- Auto-Sync Checkbox -->
+          <div class="form-checkbox-row">
+            <label class="custom-checkbox-label">
+              <input type="checkbox" id="supabaseAutoSyncCheckbox" checked>
+              <span><strong>Enable Realtime Auto-Sync:</strong> Automatically push assignments and course updates to Supabase as you make changes.</span>
+            </label>
+          </div>
+
+          <!-- Connection Buttons -->
+          <div class="supabase-actions-row">
+            <button type="submit" class="btn btn-primary" id="btnSaveSupabaseConfig">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <span>Connect to Supabase</span>
+            </button>
+            <button type="button" class="btn btn-secondary text-danger" id="btnDisconnectSupabase" style="display:none;">
+              Disconnect
+            </button>
+          </div>
+        </form>
+
+        <!-- DevBot AI & Gemini Configuration Section -->
+        <div class="ai-config-section" style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.08);">
+          <div class="modal-title-wrap" style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.25rem;">🤖</span>
+            <div>
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600;">DevBot AI & Gemini LLM Settings</h4>
+              <span class="text-xs text-muted">Configure backend server address or direct Gemini API Key</span>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label for="devbotBackendUrlInput" class="form-label">Backend API URL</label>
+            <input type="url" id="devbotBackendUrlInput" class="form-input" placeholder="http://localhost:5000" value="http://localhost:5000">
+            <span class="input-hint">The Express server running in <code>backend/server.js</code></span>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label for="devbotApiKeyInput" class="form-label">Direct Gemini API Key (Optional Client Fallback)</label>
+            <input type="password" id="devbotApiKeyInput" class="form-input font-mono" placeholder="AIzaSy... (leave blank to use backend's GEMINI_API_KEY)">
+            <span class="input-hint">Get free key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:#818cf8;">Google AI Studio</a>.</span>
+          </div>
+
+          <button type="button" class="btn btn-secondary btn-sm" id="btnSaveAiConfig">
+            Save DevBot AI Settings
+          </button>
+        </div>
+
+        <!-- Sync Actions Bar -->
+        <div class="supabase-sync-tools-block">
+          <h4 class="subhead-small">Data Synchronization Operations</h4>
+          <div class="sync-buttons-grid">
+            <button class="btn btn-secondary sync-action-card" id="btnPushToSupabase">
+              <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <div>
+                <strong>Push Local Data &rarr; Cloud</strong>
+                <div class="text-xs text-muted">Upload current assignments & courses to Supabase</div>
+              </div>
+            </button>
+
+            <button class="btn btn-secondary sync-action-card" id="btnPullFromSupabase">
+              <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <div>
+                <strong>Pull Cloud Data &rarr; Local</strong>
+                <div class="text-xs text-muted">Download latest assignments from Supabase</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- SQL Schema Guide Accordion -->
+        <div class="supabase-sql-guide-box">
+          <div class="sql-guide-header" id="btnToggleSqlGuide">
+            <span style="display:flex; align-items:center; gap:0.5rem; font-weight:600; font-size:0.85rem;">
+              <span>⚡</span> Need to setup your Supabase database tables? Click to view SQL script
+            </span>
+            <svg class="icon icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="sql-guide-body" id="sqlGuideBody" style="display:none;">
+            <p class="text-xs text-secondary" style="margin-bottom: 0.5rem;">
+              Run the SQL script located in <code>supabase_schema.sql</code> or copy the snippet below into your Supabase SQL Editor:
+            </p>
+            <div class="code-preview-wrap">
+              <pre class="sql-code-block" id="sqlSchemaSnippet">CREATE TABLE IF NOT EXISTS public.courses (
+  id TEXT PRIMARY KEY,
+  code TEXT NOT NULL,
+  name TEXT NOT NULL,
+  color TEXT NOT NULL DEFAULT '#6366f1'
+);
+
+CREATE TABLE IF NOT EXISTS public.tasks (
+  id TEXT PRIMARY KEY,
+  course_id TEXT REFERENCES public.courses(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'assignment',
+  due_date TIMESTAMPTZ NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'medium',
+  status TEXT NOT NULL DEFAULT 'todo',
+  estimated_minutes INTEGER DEFAULT 60,
+  weight NUMERIC(5,2),
+  notes TEXT,
+  subtasks JSONB DEFAULT '[]'::jsonb,
+  completed_at TIMESTAMPTZ
+);</pre>
+              <button class="btn btn-secondary btn-sm btn-copy-sql" id="btnCopySql">Copy SQL</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCloseSupabaseModalBottom">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Floating DevBot Action Button (Bottom Right) -->
+  <button class="floating-devbot-btn" id="btnFloatingDevBot" title="Open DevBot AI Mentor (Gemini)" aria-label="Open DevBot AI">
+    <span class="bot-icon">🤖</span>
+    <span class="bot-label">DevBot AI</span>
+    <span class="sparkle-dot"></span>
+  </button>
+
+  <!-- Slide-Over DevBot Drawer -->
+  <aside class="devbot-slide-drawer" id="devbotDrawer" aria-hidden="true" role="dialog" aria-labelledby="drawerTitle">
+    <div class="drawer-header">
+      <div class="drawer-title-wrap">
+        <span class="drawer-emoji">🤖</span>
+        <div>
+          <h3 class="drawer-title" id="drawerTitle">DevBot AI Assistant</h3>
+          <div class="devbot-status-badge online"><span class="status-dot"></span><span>Google Gemini 1.5</span></div>
+        </div>
+      </div>
+      <button class="drawer-close-btn" id="btnCloseDevbotDrawer" aria-label="Close DevBot Drawer">&times;</button>
+    </div>
+    <div class="drawer-messages" id="devbotDrawerMessagesList">
+      <!-- Rendered by chat.js -->
+    </div>
+    <div class="drawer-footer">
+      <div class="devbot-input-wrapper">
+        <textarea id="devbotDrawerInput" class="devbot-textarea" placeholder="Ask DevBot anything..." rows="1"></textarea>
+        <button class="btn btn-primary btn-devbot-send" id="btnDevbotDrawerSend" title="Send (Enter)">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Keyboard Shortcuts Cheat-sheet Modal Trigger Helper -->
+  <div class="floating-shortcuts-hint" id="floatingShortcutsHint" title="Keyboard Shortcuts">
+    <span>Shortcuts:</span>
+    <kbd>N</kbd> New
+    <kbd>/</kbd> Search
+    <kbd>1-7</kbd> Switch View
+    <kbd>Esc</kbd> Close
+  </div>
+
+  <script src="app.js"></script>
+  <script src="chat.js"></script>
+</body>
+</html>
